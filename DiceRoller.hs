@@ -49,15 +49,21 @@ isNum xs =
 --main functions--
 evaluate :: [Token] -> IO ()
 evaluate [] = return()
+--decompose  set of dice (e.g. 3d6) into addition of dice (e.g. d6 + d6 + d6)
 evaluate (CSym c:Die d:xs) = if c > 1 then evaluate (CSym (c-1):Die d:BOp AddOp:(RolledDie (rollDice d):xs))
                                       else evaluate (RolledDie (rollDice d):xs)
+--convert an operation over un-rolled dice into an operation over rolled dice
 evaluate (RolledDie v:BOp op:Die d:xs) = evaluate (RolledDie v:BOp op:RolledDie (rollDice d):xs)
 evaluate (Die d:BOp op:RolledDie v:xs) = evaluate (RolledDie (rollDice d):BOp op:RolledDie v:xs)
+--operations over rolled dice
 evaluate (RolledDie v1:BOp AddOp:RolledDie v2:xs) = evaluate (RolledDie (diceMath (+) v1 v2):xs)
 evaluate (RolledDie v1:BOp SubOp:RolledDie v2:xs) = evaluate (RolledDie (diceMath (-) v1 v2):xs)
+--convert an un-rolled die into a rolled die
 evaluate (Die d:xs) = evaluate ((RolledDie (rollDice d)):xs)
+--add/subtract constants from rolled dice
 evaluate (RolledDie v:BOp AddOp:CSym c:xs) = evaluate (RolledDie ((c+) <$> v):xs)
 evaluate (RolledDie v:BOp SubOp:CSym c:xs) = evaluate (RolledDie ((c-) <$> v):xs)
+--evaluate comaparison operations and print output
 evaluate (RolledDie v:COp LTOp:CSym c:xs) = do
   result <- v
   putStr . show $ result
@@ -86,6 +92,7 @@ evaluate (RolledDie v:COp GTEOp:CSym c:xs) = do
   if (result >= c)
     then putStrLn "success"
     else putStrLn "failure"
+--print output
 evaluate (RolledDie v:xs) = do 
   output <- v
   print output
