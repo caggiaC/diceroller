@@ -51,7 +51,10 @@ evaluate :: [Token] -> IO ()
 evaluate [] = return()
 evaluate (CSym c:Die d:xs) = if c > 1 then evaluate (CSym (c-1):Die d:BOp AddOp:(RolledDie (rollDice d):xs))
                                       else evaluate (RolledDie (rollDice d):xs)
-evaluate (RolledDie v1:BOp AddOp:RolledDie v2:xs) = evaluate (RolledDie (addDice v1 v2):xs)
+evaluate (RolledDie v:BOp op:Die d:xs) = evaluate (RolledDie v:BOp op:RolledDie (rollDice d):xs)
+evaluate (Die d:BOp op:RolledDie v:xs) = evaluate (RolledDie (rollDice d):BOp op:RolledDie v:xs)
+evaluate (RolledDie v1:BOp AddOp:RolledDie v2:xs) = evaluate (RolledDie (diceMath (+) v1 v2):xs)
+evaluate (RolledDie v1:BOp SubOp:RolledDie v2:xs) = evaluate (RolledDie (diceMath (-) v1 v2):xs)
 evaluate (Die d:xs) = evaluate ((RolledDie (rollDice d)):xs)
 evaluate (RolledDie v:BOp AddOp:CSym c:xs) = evaluate (RolledDie ((c+) <$> v):xs)
 evaluate (RolledDie v:BOp SubOp:CSym c:xs) = evaluate (RolledDie ((c-) <$> v):xs)
@@ -92,11 +95,11 @@ rollDice :: Int -> IO Int
 rollDice d = do
   randomRIO(1,d)
 
-addDice :: IO Int -> IO Int -> IO Int
-addDice v1 v2 = do
+diceMath :: (Int -> Int -> Int) -> IO Int -> IO Int -> IO Int
+diceMath f v1 v2 = do
   x <- v1
   y <- v2
-  return (x+y)
+  return (f x y)
 
 usage :: IO ()
 usage = do
